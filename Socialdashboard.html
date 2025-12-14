@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Media Dashboard 2025</title>
+    
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/prop-types/prop-types.min.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Recharts (Specific Version for Stability) -->
+    <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+    
+    <!-- Libraries for Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; }
+        /* Simple Spinner Animation */
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .animate-spin { animation: spin 1s linear infinite; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useRef, useEffect } = React;
+        const { 
+            BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
+            AreaChart, Area 
+        } = Recharts;
+
+        // Simple Icon Components (to avoid Lucide dependency issues in standalone HTML)
+        const Icon = ({ path, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {path}
+            </svg>
+        );
+
+        const Icons = {
+            LayoutDashboard: (props) => <Icon {...props} path={<><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></>} />,
+            Facebook: (props) => <Icon {...props} path={<path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>} />,
+            Instagram: (props) => <Icon {...props} path={<><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></>} />,
+            Linkedin: (props) => <Icon {...props} path={<><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></>} />,
+            TrendingUp: (props) => <Icon {...props} path={<><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></>} />,
+            MousePointerClick: (props) => <Icon {...props} path={<><path d="m9 9 5 12 1.8-5.2L21 14Z"/><path d="M7.2 2.2 8 5.1"/><path d="m5.1 8-2.9-.8"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="12" y1="13" y2="13"/></>} />,
+            Trophy: (props) => <Icon {...props} path={<><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></>} />,
+            Search: (props) => <Icon {...props} path={<><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></>} />,
+            Download: (props) => <Icon {...props} path={<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></>} />,
+            FileText: (props) => <Icon {...props} path={<><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></>} />,
+            Share2: (props) => <Icon {...props} path={<><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></>} />,
+            X: (props) => <Icon {...props} path={<><path d="M18 6 6 18"/><path d="m6 6 12 12"/></>} />,
+            Globe: (props) => <Icon {...props} path={<><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></>} />,
+            Presentation: (props) => <Icon {...props} path={<><path d="M2 3h20"/><path d="M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3"/><path d="m7 21 5-5 5 5"/></>} />,
+            Loader2: (props) => <Icon {...props} className={`${props.className} animate-spin`} path={<path d="M21 12a9 9 0 1 1-6.219-8.56" />} />,
+            UploadCloud: (props) => <Icon {...props} path={<><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></>} />,
+        };
+
+
+        // --- DATA ---
+        const initialKpiData = [
+            { platform: 'Instagram', target: 4500, achieved: 2276, color: '#E1306C' },
+            { platform: 'Facebook', target: 2300, achieved: 1241, color: '#1877F2' },
+            { platform: 'LinkedIn', target: 1200, achieved: 307, color: '#0A66C2' },
+        ];
+
+        const initialMonthlyData = [
+            { name: 'Jan', fbReach: 3666, igReach: 7878, fbFollow: 11, igFollow: 149, fbVisit: 1998, igVisit: 266, fbInteract: 615, igInteract: 25 },
+            { name: 'Feb', fbReach: 2544, igReach: 3998, fbFollow: 51, igFollow: 20, fbVisit: 1620, igVisit: 430, fbInteract: 100, igInteract: 311 },
+            { name: 'Mar', fbReach: 2324, igReach: 2655, fbFollow: 8, igFollow: 11, fbVisit: 1343, igVisit: 242, fbInteract: 48, igInteract: 167 },
+            { name: 'Apr', fbReach: 9491, igReach: 5760, fbFollow: 119, igFollow: 114, fbVisit: 3338, igVisit: 1145, fbInteract: 725, igInteract: 586 },
+            { name: 'May', fbReach: 2064, igReach: 1583, fbFollow: 22, igFollow: 13, fbVisit: 1210, igVisit: 216, fbInteract: 20, igInteract: 100 },
+            { name: 'Jun', fbReach: 1824, igReach: 6744, fbFollow: 38, igFollow: 29, fbVisit: 1339, igVisit: 373, fbInteract: 46, igInteract: 296 },
+            { name: 'Jul', fbReach: 1135, igReach: 34838, fbFollow: 27, igFollow: 18, fbVisit: 1352, igVisit: 304, fbInteract: 25, igInteract: 389 },
+            { name: 'Aug', fbReach: 1500, igReach: 4200, fbFollow: 30, igFollow: 25, fbVisit: 1280, igVisit: 280, fbInteract: 55, igInteract: 150 }, 
+            { name: 'Sep', fbReach: 1600, igReach: 4500, fbFollow: 32, igFollow: 28, fbVisit: 1300, igVisit: 290, fbInteract: 60, igInteract: 160 }, 
+            { name: 'Oct', fbReach: 2800, igReach: 5200, fbFollow: 45, igFollow: 40, fbVisit: 1450, igVisit: 320, fbInteract: 120, igInteract: 210 }, 
+            { name: 'Nov', fbReach: 1900, igReach: 4800, fbFollow: 35, igFollow: 30, fbVisit: 1380, igVisit: 300, fbInteract: 70, igInteract: 180 }, 
+            { name: 'Dec', fbReach: 3000, igReach: 6000, fbFollow: 50, igFollow: 45, fbVisit: 1500, igVisit: 350, fbInteract: 150, igInteract: 250 }, 
+        ];
+
+        const demographicsFB = [
+            { name: '18-24', women: 4.7, men: 2.8 },
+            { name: '25-34', women: 24.8, men: 20.8 }, 
+            { name: '35-44', women: 14.5, men: 16.3 },
+            { name: '45-54', women: 5.4, men: 6.2 },
+            { name: '55+', women: 2.3, men: 2.2 },
+        ];
+
+        const demographicsIG = [
+            { name: '18-24', women: 11.9, men: 5.5 },
+            { name: '25-34', women: 31.0, men: 20.2 }, 
+            { name: '35-44', women: 15.6, men: 8.3 },
+            { name: '45-54', women: 3.3, men: 1.3 },
+            { name: '55+', women: 1.8, men: 1.1 },
+        ];
+
+        const topContentData = [
+            { id: 1, platform: 'Instagram', title: 'Milli X Focus Media (SICK WITH IT)', type: 'Reel', views: 44684, reach: 34349, interactions: 296, date: 'July' },
+            { id: 2, platform: 'Instagram', title: 'Chompoo Araya & Nong Gale (Coway)', type: 'Reel', views: 7234, reach: 6254, interactions: 137, date: 'Jan' },
+            { id: 3, platform: 'Facebook', title: 'Chinese New Year Giveaway', type: 'Photo', views: 7685, reach: 1537, interactions: 596, date: 'Jan' },
+            { id: 4, platform: 'Instagram', title: 'S2O Festival Giveaway', type: 'Image', views: 6110, reach: 3259, interactions: 264, date: 'April' },
+            { id: 5, platform: 'Facebook', title: 'Mad Unicorn 2025 (GDH)', type: 'Photo', views: 1305, reach: 612, interactions: 23, date: 'June' },
+            { id: 6, platform: 'Instagram', title: 'Central Park Bangkok', type: 'Reel', views: 2703, reach: 1560, interactions: 147, date: 'Sep' },
+            { id: 7, platform: 'Facebook', title: 'Halloween (Dark Music Festival)', type: 'Photo', views: 1500, reach: 800, interactions: 45, date: 'Oct' },
+            { id: 8, platform: 'Instagram', title: 'Valentine (Focus on Love)', type: 'Reel', views: 2477, reach: 1218, interactions: 64, date: 'Feb' },
+        ];
+
+
+        // --- COMPONENTS ---
+
+        const Card = ({ title, value, subtext, icon: Icon, colorClass }) => (
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-start justify-between hover:shadow-md transition-shadow">
+            <div>
+            <p className="text-sm font-medium text-slate-500 mb-1">{title}</p>
+            <h3 className="text-2xl font-bold text-slate-800">{value}</h3>
+            {subtext && <p className={`text-xs mt-2 ${colorClass}`}>{subtext}</p>}
+            </div>
+            <div className={`p-3 rounded-lg ${colorClass.replace('text-', 'bg-').replace('600', '100')}`}>
+            <Icon className={`w-6 h-6 ${colorClass}`} />
+            </div>
+        </div>
+        );
+
+        const ProgressBar = ({ label, current, target, color }) => {
+        const percentage = Math.min(100, Math.round((current / target) * 100));
+        return (
+            <div className="mb-4">
+            <div className="flex justify-between mb-1">
+                <span className="text-sm font-medium text-slate-700">{label}</span>
+                <span className="text-sm font-medium text-slate-500">{percentage}% ({current.toLocaleString()} / {target.toLocaleString()})</span>
+            </div>
+            <div className="w-full bg-slate-200 rounded-full h-2.5">
+                <div 
+                className="h-2.5 rounded-full transition-all duration-500" 
+                style={{ width: `${percentage}%`, backgroundColor: color }}
+                ></div>
+            </div>
+            </div>
+        );
+        };
+
+        const TopThreeRanking = ({ data, metricKey, label }) => {
+        const sorted = [...data].sort((a, b) => b[metricKey] - a[metricKey]).slice(0, 3);
+        return (
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+            <h4 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                <Icons.Trophy className="w-5 h-5 text-yellow-500" /> Top 3 Months: {label}
+            </h4>
+            <div className="space-y-3">
+                {sorted.map((item, index) => (
+                <div key={item.name} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                    <span className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
+                        index === 0 ? 'bg-yellow-100 text-yellow-700' : 
+                        index === 1 ? 'bg-slate-200 text-slate-600' : 
+                        'bg-orange-100 text-orange-700'
+                    }`}>
+                        {index + 1}
+                    </span>
+                    <span className="font-medium text-slate-700">{item.name}</span>
+                    </div>
+                    <span className="font-bold text-slate-900">{item[metricKey].toLocaleString()}</span>
+                </div>
+                ))}
+            </div>
+            </div>
+        );
+        };
+
+        const LoadingOverlay = ({ status, progress }) => (
+            <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-white bg-opacity-90 backdrop-blur-sm">
+                <Icons.Loader2 className="w-12 h-12 text-indigo-600 animate-spin mb-4" />
+                <h3 className="text-xl font-bold text-indigo-900 mb-2">Generating Presentation...</h3>
+                <p className="text-slate-600 text-sm mb-4">{status}</p>
+                <div className="w-64 bg-slate-200 rounded-full h-2">
+                <div className="bg-indigo-600 h-2 rounded-full transition-all duration-300" style={{ width: `${progress}%` }}></div>
+                </div>
+                <p className="text-slate-400 text-xs mt-4">Please do not close this window</p>
+            </div>
+        );
+
+        function SocialMediaDashboard() {
+            const [activeTab, setActiveTab] = useState('overview');
+            const [searchTerm, setSearchTerm] = useState('');
+            const [monthlyData, setMonthlyData] = useState(initialMonthlyData);
+            const [isProcessing, setIsProcessing] = useState(false);
+            const [loadingStatus, setLoadingStatus] = useState('');
+            const [loadingProgress, setLoadingProgress] = useState(0);
+            const dashboardRef = useRef(null);
+            const fileInputRef = useRef(null);
+
+            // Calculate Totals
+            const totalFBReach = monthlyData.reduce((acc, cur) => acc + (cur.fbReach || 0), 0);
+            const totalIGReach = monthlyData.reduce((acc, cur) => acc + (cur.igReach || 0), 0);
+            const totalFBInteractions = monthlyData.reduce((acc, cur) => acc + (cur.fbInteract || 0), 0);
+            const totalIGInteractions = monthlyData.reduce((acc, cur) => acc + (cur.igInteract || 0), 0);
+
+            const handleFileUpload = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                const text = e.target.result;
+                try {
+                    const lines = text.split('\n').filter(line => line.trim() !== '');
+                    const headers = lines[0].split(',').map(h => h.trim());
+                    
+                    if (!headers.includes('Month') && !headers.includes('name')) {
+                        alert("Invalid CSV. Header must include 'Month' or 'name'.");
+                        return;
+                    }
+
+                    const newMonthlyData = lines.slice(1).map(line => {
+                    const values = line.split(',');
+                    return {
+                        name: values[0]?.trim(),
+                        fbReach: parseInt(values[1] || 0),
+                        igReach: parseInt(values[2] || 0),
+                        fbFollow: parseInt(values[3] || 0),
+                        igFollow: parseInt(values[4] || 0),
+                        fbVisit: parseInt(values[5] || 0),
+                        igVisit: parseInt(values[6] || 0),
+                        fbInteract: parseInt(values[7] || 0),
+                        igInteract: parseInt(values[8] || 0),
+                    };
+                    });
+                    if (newMonthlyData.length > 0) setMonthlyData(newMonthlyData);
+                    alert("Data imported successfully.");
+                } catch (error) {
+                    alert("Error parsing CSV.");
+                }
+                };
+                reader.readAsText(file);
+            };
+
+            const downloadCSV = () => {
+                const headers = ['Month', 'FB Reach', 'IG Reach', 'FB Follow', 'IG Follow', 'FB Visit', 'IG Visit', 'FB Interact', 'IG Interact'];
+                const rows = monthlyData.map(row => [
+                    row.name, row.fbReach, row.igReach, row.fbFollow, row.igFollow, row.fbVisit, row.igVisit, row.fbInteract, row.igInteract
+                ]);
+                const csvContent = [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+                const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+                link.setAttribute("download", "Social_Media_Performance_2025.csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
+            const downloadPDF = async () => {
+                if (!dashboardRef.current) return;
+                setIsProcessing(true);
+                setLoadingStatus('Capturing...');
+                setLoadingProgress(30);
+
+                try {
+                    const canvas = await window.html2canvas(dashboardRef.current, { scale: 2, useCORS: true, logging: false });
+                    setLoadingProgress(70);
+                    const imgData = canvas.toDataURL('image/png');
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+                    const imgWidth = 210;
+                    const pageHeight = 297;
+                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                    let heightLeft = imgHeight;
+                    let position = 0;
+
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                    while (heightLeft >= 0) {
+                        position = heightLeft - imgHeight;
+                        pdf.addPage();
+                        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                        heightLeft -= pageHeight;
+                    }
+                    pdf.save('Dashboard.pdf');
+                } catch (e) { alert("PDF Error"); } 
+                finally { setIsProcessing(false); }
+            };
+
+            const downloadPPTX = async () => {
+                if (!dashboardRef.current) return;
+                const initialTab = activeTab;
+                const tabs = ['overview', 'facebook', 'instagram', 'content'];
+                setIsProcessing(true);
+                setLoadingStatus('Initializing PPTX...');
+                setLoadingProgress(10);
+
+                try {
+                const pptx = new window.PptxGenJS();
+                pptx.layout = 'LAYOUT_16x9';
+                pptx.title = "Social Media Report 2025";
+
+                for (let i = 0; i < tabs.length; i++) {
+                    const tab = tabs[i];
+                    setLoadingStatus(`Capturing ${tab}...`);
+                    setLoadingProgress(10 + ((i + 1) / tabs.length) * 70);
+                    setActiveTab(tab);
+                    await new Promise(resolve => setTimeout(resolve, 1500)); // Wait for render
+
+                    const canvas = await window.html2canvas(dashboardRef.current, { scale: 2, useCORS: true, logging: false, windowWidth: 1440 });
+                    const imgData = canvas.toDataURL('image/png');
+                    const slide = pptx.addSlide();
+                    slide.addImage({ data: imgData, x: 0, y: 0, w: '100%', h: '100%' });
+                }
+                setLoadingStatus('Saving...');
+                await pptx.writeFile({ fileName: "Dashboard_Slides.pptx" });
+                } catch (error) { console.error(error); alert("PPTX Error"); } 
+                finally { setActiveTab(initialTab); setIsProcessing(false); }
+            };
+
+            const renderContent = () => {
+                switch (activeTab) {
+                    case 'overview':
+                        return (
+                        <div className="space-y-6 animate-in fade-in duration-500">
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                            <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                                <Icons.TrendingUp className="w-6 h-6 text-indigo-600" /> KPI Achievement 2025
+                            </h2>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                {initialKpiData.map((kpi) => (
+                                <div key={kpi.platform} className="p-4 border border-slate-100 rounded-xl bg-slate-50">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        {kpi.platform === 'Facebook' && <Icons.Facebook className="text-blue-600" />}
+                                        {kpi.platform === 'Instagram' && <Icons.Instagram className="text-pink-600" />}
+                                        {kpi.platform === 'LinkedIn' && <Icons.Linkedin className="text-blue-700" />}
+                                        <span className="font-bold text-lg">{kpi.platform}</span>
+                                    </div>
+                                    <ProgressBar label="KPI Progress" current={kpi.achieved} target={kpi.target} color={kpi.color} />
+                                </div>
+                                ))}
+                            </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <Card title="Total FB Reach" value={totalFBReach.toLocaleString()} subtext="Year to Date" icon={Icons.Facebook} colorClass="text-blue-600" />
+                            <Card title="Total IG Reach" value={totalIGReach.toLocaleString()} subtext="Year to Date" icon={Icons.Instagram} colorClass="text-pink-600" />
+                            <Card title="FB Interactions" value={totalFBInteractions.toLocaleString()} subtext="Interactions" icon={Icons.MousePointerClick} colorClass="text-blue-600" />
+                            <Card title="IG Interactions" value={totalIGInteractions.toLocaleString()} subtext="Interactions" icon={Icons.MousePointerClick} colorClass="text-pink-600" />
+                            </div>
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 h-96">
+                            <h3 className="font-bold text-slate-800 mb-4">Reach Comparison (FB vs IG)</h3>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={monthlyData}>
+                                <defs>
+                                    <linearGradient id="colorFb" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#1877F2" stopOpacity={0.1}/>
+                                    <stop offset="95%" stopColor="#1877F2" stopOpacity={0}/>
+                                    </linearGradient>
+                                    <linearGradient id="colorIg" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#E1306C" stopOpacity={0.1}/>
+                                    <stop offset="95%" stopColor="#E1306C" stopOpacity={0}/>
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748B'}} />
+                                <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748B'}} />
+                                <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                <Legend />
+                                <Area type="monotone" dataKey="fbReach" name="Facebook Reach" stroke="#1877F2" fillOpacity={1} fill="url(#colorFb)" />
+                                <Area type="monotone" dataKey="igReach" name="Instagram Reach" stroke="#E1306C" fillOpacity={1} fill="url(#colorIg)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                            </div>
+                        </div>
+                        );
+                    
+                    case 'facebook':
+                        return (
+                            <div className="space-y-6 animate-in fade-in duration-500">
+                                <h2 className="text-2xl font-bold text-blue-800 flex items-center gap-2"><Icons.Facebook /> Facebook Performance</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <TopThreeRanking data={monthlyData} metricKey="fbReach" label="Reach" />
+                                <TopThreeRanking data={monthlyData} metricKey="fbFollow" label="New Followers" />
+                                <TopThreeRanking data={monthlyData} metricKey="fbInteract" label="Interactions" />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                                    <h3 className="font-bold text-slate-800 mb-4">Audience Age & Gender</h3>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                    <BarChart data={demographicsFB} layout="vertical">
+                                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false}/>
+                                        <XAxis type="number" />
+                                        <YAxis dataKey="name" type="category" width={50} />
+                                        <Tooltip />
+                                        <Legend />
+                                        <Bar dataKey="women" name="Women (%)" fill="#F472B6" radius={[0, 4, 4, 0]} />
+                                        <Bar dataKey="men" name="Men (%)" fill="#60A5FA" radius={[0, 4, 4, 0]} />
+                                    </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                                    <h3 className="font-bold text-slate-800 mb-4">Monthly Interactions Trend</h3>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                    <LineChart data={monthlyData}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                        <XAxis dataKey="name" />
+                                        <YAxis />
+                                        <Tooltip />
+                                        <Line type="monotone" dataKey="fbInteract" name="Interactions" stroke="#1877F2" strokeWidth={3} dot={{r: 4}} />
+                                    </LineChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                </div>
+                            </div>
+                        );
+
+                    case 'instagram':
+                        return (
+                             <div className="space-y-6 animate-in fade-in duration-500">
+                                <h2 className="text-2xl font-bold text-pink-700 flex items-center gap-2"><Icons.Instagram /> Instagram Performance</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <TopThreeRanking data={monthlyData} metricKey="igReach" label="Reach" />
+                                <TopThreeRanking data={monthlyData} metricKey="igFollow" label="New Followers" />
+                                <TopThreeRanking data={monthlyData} metricKey="igInteract" label="Interactions" />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                                    <h3 className="font-bold text-slate-800 mb-4">Audience Age & Gender</h3>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                    <BarChart data={demographicsIG} layout="vertical">
+                                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false}/>
+                                        <XAxis type="number" />
+                                        <YAxis dataKey="name" type="category" width={50} />
+                                        <Tooltip />
+                                        <Legend />
+                                        <Bar dataKey="women" name="Women (%)" fill="#EC4899" radius={[0, 4, 4, 0]} />
+                                        <Bar dataKey="men" name="Men (%)" fill="#3B82F6" radius={[0, 4, 4, 0]} />
+                                    </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                                    <h3 className="font-bold text-slate-800 mb-4">Profile Visits Trend</h3>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                    <LineChart data={monthlyData}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                        <XAxis dataKey="name" />
+                                        <YAxis />
+                                        <Tooltip />
+                                        <Line type="monotone" dataKey="igVisit" name="Visits" stroke="#E1306C" strokeWidth={3} dot={{r: 4}} />
+                                    </LineChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                </div>
+                            </div>
+                        );
+                    case 'content':
+                        const filteredContent = topContentData.filter(item => 
+                        item.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                        item.platform.toLowerCase().includes(searchTerm.toLowerCase())
+                        );
+
+                        return (
+                        <div className="space-y-6 animate-in fade-in duration-500">
+                            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                            <h2 className="text-2xl font-bold text-slate-800">Top Content Performance</h2>
+                            <div className="relative w-full md:w-64">
+                                <Icons.Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                                <input 
+                                type="text" 
+                                placeholder="Search content..." 
+                                className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                            </div>
+
+                            <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm text-slate-600">
+                                <thead className="bg-slate-50 text-slate-700 uppercase font-bold text-xs">
+                                    <tr>
+                                    <th className="px-6 py-4">Platform</th>
+                                    <th className="px-6 py-4">Content Title</th>
+                                    <th className="px-6 py-4">Type</th>
+                                    <th className="px-6 py-4">Month</th>
+                                    <th className="px-6 py-4 text-right">Views</th>
+                                    <th className="px-6 py-4 text-right">Reach</th>
+                                    <th className="px-6 py-4 text-right">Interactions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {filteredContent.map((post) => (
+                                    <tr key={post.id} className="hover:bg-slate-50 transition-colors">
+                                        <td className="px-6 py-4">
+                                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                            post.platform === 'Facebook' ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800'
+                                        }`}>
+                                            {post.platform === 'Facebook' ? <Icons.Facebook className="w-3 h-3" /> : <Icons.Instagram className="w-3 h-3" />}
+                                            {post.platform}
+                                        </span>
+                                        </td>
+                                        <td className="px-6 py-4 font-medium text-slate-900">{post.title}</td>
+                                        <td className="px-6 py-4">{post.type}</td>
+                                        <td className="px-6 py-4">{post.date}</td>
+                                        <td className="px-6 py-4 text-right">{post.views.toLocaleString()}</td>
+                                        <td className="px-6 py-4 text-right">{post.reach.toLocaleString()}</td>
+                                        <td className="px-6 py-4 text-right">{post.interactions.toLocaleString()}</td>
+                                    </tr>
+                                    ))}
+                                </tbody>
+                                </table>
+                            </div>
+                            </div>
+                        </div>
+                        );
+                    default: return <div>Select a tab</div>;
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-slate-50 font-sans text-slate-900 relative">
+                    {isProcessing && <LoadingOverlay status={loadingStatus} progress={loadingProgress} />}
+                    <div className="flex h-screen flex-col md:flex-row overflow-hidden">
+                        <aside className="w-full md:w-64 bg-white border-r border-slate-200 flex-shrink-0">
+                            <div className="p-6 border-b border-slate-100">
+                                <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Social Dash 2025</h1>
+                                <p className="text-xs text-slate-400 mt-1">Performance Analytics</p>
+                            </div>
+                            <nav className="p-4 space-y-2">
+                                {['overview', 'facebook', 'instagram', 'content'].map(tab => (
+                                    <button key={tab} onClick={() => setActiveTab(tab)} disabled={isProcessing} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors capitalize ${activeTab === tab ? 'bg-indigo-50 text-indigo-600 font-medium' : 'text-slate-600 hover:bg-slate-50'}`}>
+                                        {tab === 'overview' && <Icons.LayoutDashboard className="w-5 h-5" />}
+                                        {tab === 'facebook' && <Icons.Facebook className="w-5 h-5" />}
+                                        {tab === 'instagram' && <Icons.Instagram className="w-5 h-5" />}
+                                        {tab === 'content' && <Icons.TrendingUp className="w-5 h-5" />}
+                                        {tab}
+                                    </button>
+                                ))}
+                            </nav>
+                        </aside>
+                        <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50/50" ref={dashboardRef}>
+                             <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                                <div><h2 className="text-2xl font-bold text-slate-800 capitalize">{activeTab} Dashboard</h2><p className="text-sm text-slate-500">Data updated: Dec 2025</p></div>
+                                <div className="flex gap-2 flex-wrap">
+                                    <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".csv" className="hidden" />
+                                    <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg text-sm font-medium shadow-sm hover:bg-indigo-100 transition-colors"><Icons.UploadCloud className="w-4 h-4" /> Import</button>
+                                    <button onClick={downloadPPTX} className="flex items-center gap-2 px-4 py-2 bg-orange-50 border border-orange-200 text-orange-700 rounded-lg text-sm font-medium shadow-sm hover:bg-orange-100"><Icons.Presentation className="w-4 h-4" /> PPT</button>
+                                    <button onClick={downloadPDF} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 shadow-sm hover:bg-slate-50"><Icons.FileText className="w-4 h-4" /> PDF</button>
+                                    <button onClick={downloadCSV} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 shadow-sm hover:bg-slate-50"><Icons.Download className="w-4 h-4" /> CSV</button>
+                                </div>
+                            </header>
+                            {renderContent()}
+                        </main>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<SocialMediaDashboard />);
+    </script>
+</body>
+</html>
